@@ -22,7 +22,7 @@ public:
 	~Sphere() {}
 
 	Vec3f get_color() const { return color; }
-	bool ray_intersects(const Vec3f& origin, const Vec3f& dir) const;
+	float ray_intersection(const Vec3f& origin, const Vec3f& dir) const;
 };
 
 #endif /* OBJECTS_H_ */

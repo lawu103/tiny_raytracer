@@ -8,7 +8,10 @@
 #ifndef GEOMETRY_H_
 #define GEOMETRY_H_
 
+#include <math.h>
+
 #include <cassert>
+#include <limits>
 #include <vector>
 
 template<size_t dim, typename T> class Vec {
@@ -18,7 +21,7 @@ private:
 public:
 	Vec() {
 		for (size_t i = 0; i < dim; ++i) {
-			elements[i] = T();
+			elements[i] = std::numeric_limits<T>::max();
 		}
 	}
 

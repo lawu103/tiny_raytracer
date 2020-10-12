@@ -25,15 +25,22 @@ Vec3f canvasToPort(float canvasX, float canvasY, int canvasW, int canvasH, int p
 /*
  * Returns the color a ray sees
  */
-Vec3f traceRay(const Vec3f& camera, const Vec3f& dir, const Sphere& ball) {
-	if (ball.ray_intersects(camera, dir)) {
-		return ball.get_color();
+Vec3f traceRay(const Vec3f& camera, const Vec3f& dir, const vector<Sphere>& balls) {
+	float tmin = numeric_limits<float>::max();
+	Vec3f color = Vec3f(255, 255, 255);
+	for (const Sphere& ball: balls) {
+		float t = ball.ray_intersection(camera, dir);
+		if (t < tmin) {
+			tmin = t;
+			color = ball.get_color();
+		}
 	}
-	return Vec3f(255, 255, 255);
+	return color;
 }
 
 int main() {
-	Sphere ball(Vec3f(0, -1, 3), 1, Vec3f(255, 0, 0));
+	vector<Sphere> balls = {Sphere(Vec3f(0, -1, 3), 1, Vec3f(255, 0, 0)),
+							Sphere(Vec3f(0, 0, 5), 1, Vec3f(0, 255, 0))};
 
 	// Camera position in world coordinates
 	const Vec3f camera(0, 0, 0);
@@ -56,7 +63,7 @@ int main() {
 			float canvasX = i - canvasW/2.f;
 			float canvasY = canvasH/2.f - j;
 			Vec3f dir = canvasToPort(canvasX, canvasY, canvasW, canvasH, portW, portH, portD);
-			Vec3f color = traceRay(camera, dir, ball);
+			Vec3f color = traceRay(camera, dir, balls);
 			framebuffer[j*canvasW + i] = color;
 		}
 	}
