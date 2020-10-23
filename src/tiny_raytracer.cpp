@@ -51,7 +51,7 @@ Vec3f trace_ray(const Vec3f& camera, const Vec3f& dir, const vector<Sphere>& bal
 	Vec3f color = Vec3f(255, 255, 255);
 	for (const Sphere& ball: balls) {
 		float t = ball.ray_intersection(camera, dir);
-		if (t < tmin) {
+		if (t < tmin && t >= 0) {
 			tmin = t;
 			Vec3f p = camera + t*dir;
 			Vec3f n = p - ball.get_center();
@@ -73,15 +73,15 @@ int main() {
 	vector<DirectedLight> directedLights = {DirectedLight(0.6, true, Vec3f(2, 1, 0)),
 											DirectedLight(0.2, false, Vec3f(1, 4, 4))};
 
-	// Camera position in world coordinates. z is into the screen.
+	// Camera position in world coordinates. x and y are planar with the screen, z is into the screen.
 	const Vec3f camera(0, 0, 0);
 
-	// Canvas dimensions
+	// Canvas dimensions in pixels.
 	const int canvasW = 1024;
 	const int canvasH = 1024;
 
 	// Viewport dimensions in world units. This should be proportionally the same as the canvas.
-	// Note that the viewport is always fixed centred to the camera, so portD is a depth that's
+	// Note that the viewport is always fixed centered to the camera, so portD is a depth that's
 	// relative to the camera.
 	const int portW = 1;
 	const int portH = 1;
@@ -92,7 +92,7 @@ int main() {
 	// Fill in color values
 	for (int j = 0; j < canvasH; ++j) {
 		for (int i = 0; i < canvasW; ++i) {
-			float canvasX = i - canvasW/2.f;
+			float canvasX = i - canvasW/2.f;	// treat center of canvas as origin
 			float canvasY = canvasH/2.f - j;
 			Vec3f dir = canvas_to_port(canvasX, canvasY, canvasW, canvasH, portW, portH, portD);
 			Vec3f color = trace_ray(camera, dir, balls, ambientLight, directedLights);
