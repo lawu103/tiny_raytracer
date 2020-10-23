@@ -36,7 +36,7 @@ float find_lighting(const Vec3f& p, const Vec3f& n, const Light& ambientLight,
 
 		float dotProd = n*l;
 		if (dotProd > 0) {
-			i += dotProd/(n.length() * l.length());
+			i += directedLight.get_intensity() * dotProd/(n.length()*l.length());
 		}
 	}
 	return i;
