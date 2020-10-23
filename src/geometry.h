@@ -48,6 +48,10 @@ public:
 	Vec(T X, T Y, T Z): x(X), y(Y), z(Z) {}
 	~Vec() {}
 
+	const float length() const {
+		return sqrt((*this)*(*this));
+	}
+
 	const T& operator[](const size_t i) const {
 		assert(i < 3);
 		return i == 0 ? x : (i == 1 ? y : z);
@@ -60,6 +64,13 @@ public:
 };
 
 typedef Vec<3, float> Vec3f;
+
+template<size_t dim, typename T> Vec<dim, T> operator+(Vec<dim, T> a, const Vec<dim, T>& b) {
+	for (size_t i = 0; i < dim; ++i) {
+		a[i] += b[i];
+	}
+	return a;
+}
 
 template<size_t dim, typename T> Vec<dim, T> operator-(Vec<dim, T> a, const Vec<dim, T>& b) {
 	for (size_t i = 0; i < dim; ++i) {
@@ -74,6 +85,13 @@ template<size_t dim, typename T> T operator*(const Vec<dim, T>& a, const Vec<dim
 		dotProd += a[i]*b[i];
 	}
 	return dotProd;
+}
+
+template<size_t dim, typename T> Vec<dim, T> operator*(const float& c, Vec<dim, T> a) {
+	for (size_t i = 0; i < dim; ++i) {
+		a[i] *= c;
+	}
+	return a;
 }
 
 #endif /* GEOMETRY_H_ */

@@ -10,7 +10,7 @@
 /*
  * Solves a quadratic for the intersections of the ray with the sphere, as shown in
  * https://gabrielgambetta.com/computer-graphics-from-scratch/basic-ray-tracing.html.
- * The float returned is the t parameter for the vector equation of dir.
+ * The float returned is the t parameter for the vector equation.
  */
 float Sphere::ray_intersection(const Vec3f& origin, const Vec3f& dir) const {
 	const Vec3f CO = origin - center;
