@@ -29,9 +29,11 @@ float find_lighting(const Vec3f& p, const Vec3f& n, const Light& ambientLight,
 					const vector<DirectedLight>& directedLights) {
 	float i = ambientLight.get_intensity();
 	for (const DirectedLight& directedLight: directedLights) {
-		Vec3f l = directedLight.get_v();
+		Vec3f l;
 		if (directedLight.is_point()) {
-			l = l - p;
+			l = directedLight.get_v() - p;
+		} else {
+			l = -1*directedLight.get_v();
 		}
 
 		float dotProd = n*l;
