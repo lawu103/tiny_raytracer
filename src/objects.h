@@ -15,14 +15,16 @@ private:
 	Vec3f center;
 	float radius;
 	Vec3f color;
+	float specular;
 
 public:
-	Sphere(): center(0, 0, 0), radius(0), color(255, 0, 0) {}
-	Sphere(Vec3f C, float R, Vec3f Color): center(C), radius(R), color(Color) {}
+	Sphere(): center(0, 0, 0), radius(0), color(255, 0, 0), specular(0) {}
+	Sphere(Vec3f C, float R, Vec3f Color, float S): center(C), radius(R), color(Color), specular(S) {}
 	~Sphere() {}
 
 	Vec3f get_center() const {return center; }
 	Vec3f get_color() const { return color; }
+	float get_specular() const { return specular; }
 	float ray_intersection(const Vec3f& origin, const Vec3f& dir) const;
 };
 

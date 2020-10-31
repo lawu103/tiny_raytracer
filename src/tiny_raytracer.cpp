@@ -9,6 +9,7 @@
 #include "geometry.h"
 #include "objects.h"
 
+#include <algorithm>
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -25,8 +26,12 @@ Vec3f canvas_to_port(float canvasX, float canvasY, int canvasW, int canvasH, int
 /*
  * Calculates total lighting on a point
  */
-float find_lighting(const Vec3f& P, const Vec3f& N, const Light& ambientLight,
-					const vector<DirectedLight>& directedLights) {
+float compute_lighting(const float tmin, const Vec3f& camera, const Vec3f& dir, const Sphere* closestBall,
+		const Light& ambientLight, const vector<DirectedLight>& directedLights) {
+	Vec3f P = camera + tmin*dir;
+	Vec3f N = P - closestBall->get_center();
+	N = 1/N.length() * N;
+
 	float i = ambientLight.get_intensity();
 	for (const DirectedLight& directedLight: directedLights) {
 		Vec3f L;
@@ -36,9 +41,21 @@ float find_lighting(const Vec3f& P, const Vec3f& N, const Light& ambientLight,
 			L = -1*directedLight.get_v();
 		}
 
-		float dotProd = N*L;
-		if (dotProd > 0) {
-			i += directedLight.get_intensity() * dotProd/(N.length()*L.length());
+		// Diffuse
+		float NdotL = N*L;
+		if (NdotL > 0) {
+			i += directedLight.get_intensity() * NdotL/(N.length()*L.length());
+		}
+
+		// Specular
+		float s = closestBall->get_specular();
+		if (s > 0) {
+			Vec3f R = 2*(N*L)*N - L;
+			Vec3f V = -1*dir;
+			float RdotV = R*V;
+			if (RdotV > 0) {
+				i += directedLight.get_intensity() * pow(RdotV/(R.length()*V.length()), s);
+			}
 		}
 	}
 	return i;
@@ -60,19 +77,17 @@ Vec3f trace_ray(const Vec3f& camera, const Vec3f& dir, const vector<Sphere>& bal
 		}
 	}
 	if (closestBall) {
-		Vec3f P = camera + tmin*dir;
-		Vec3f N = P - closestBall->get_center();
-		float lighting = find_lighting(P, N, ambientLight, directedLights);
+		float lighting = compute_lighting(tmin, camera, dir, closestBall, ambientLight, directedLights);
 		color = lighting*closestBall->get_color();
 	}
-	return color;
+	return Vec3f(min(255.f, color[0]), min(255.f, color[1]), min(255.f, color[2]));
 }
 
 int main() {
-	vector<Sphere> balls = {Sphere(Vec3f(0, -1, 3), 1, Vec3f(255, 0, 0)),
-							Sphere(Vec3f(-2, 0, 4), 1, Vec3f(0, 255, 0)),
-							Sphere(Vec3f(2, 0, 4), 1, Vec3f(0, 0, 255)),
-							Sphere(Vec3f(0, -5001, 0), 5000, Vec3f(255, 255, 0))};
+	vector<Sphere> balls = {Sphere(Vec3f(0, -1, 3), 1, Vec3f(255, 0, 0), 500),
+							Sphere(Vec3f(-2, 0, 4), 1, Vec3f(0, 255, 0), 10),
+							Sphere(Vec3f(2, 0, 4), 1, Vec3f(0, 0, 255), 500),
+							Sphere(Vec3f(0, -5001, 0), 5000, Vec3f(255, 255, 0), 1000)};
 
 	// The sum of the intensities of our lights should be 1 if we don't want overexposure.
 	Light ambientLight(0.2);
