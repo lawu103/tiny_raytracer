@@ -25,20 +25,20 @@ Vec3f canvas_to_port(float canvasX, float canvasY, int canvasW, int canvasH, int
 /*
  * Calculates total lighting on a point
  */
-float find_lighting(const Vec3f& p, const Vec3f& n, const Light& ambientLight,
+float find_lighting(const Vec3f& P, const Vec3f& N, const Light& ambientLight,
 					const vector<DirectedLight>& directedLights) {
 	float i = ambientLight.get_intensity();
 	for (const DirectedLight& directedLight: directedLights) {
-		Vec3f l;
+		Vec3f L;
 		if (directedLight.is_point()) {
-			l = directedLight.get_v() - p;
+			L = directedLight.get_v() - P;
 		} else {
-			l = -1*directedLight.get_v();
+			L = -1*directedLight.get_v();
 		}
 
-		float dotProd = n*l;
+		float dotProd = N*L;
 		if (dotProd > 0) {
-			i += directedLight.get_intensity() * dotProd/(n.length()*l.length());
+			i += directedLight.get_intensity() * dotProd/(N.length()*L.length());
 		}
 	}
 	return i;
@@ -51,15 +51,19 @@ Vec3f trace_ray(const Vec3f& camera, const Vec3f& dir, const vector<Sphere>& bal
 				const vector<DirectedLight>& directedLights) {
 	float tmin = numeric_limits<float>::max();
 	Vec3f color = Vec3f(255, 255, 255);
+	const Sphere* closestBall = NULL;
 	for (const Sphere& ball: balls) {
 		float t = ball.ray_intersection(camera, dir);
 		if (t < tmin && t >= 0) {
 			tmin = t;
-			Vec3f p = camera + t*dir;
-			Vec3f n = p - ball.get_center();
-			float lighting = find_lighting(p, n, ambientLight, directedLights);
-			color = lighting*ball.get_color();
+			closestBall = &ball;
 		}
+	}
+	if (closestBall) {
+		Vec3f P = camera + tmin*dir;
+		Vec3f N = P - closestBall->get_center();
+		float lighting = find_lighting(P, N, ambientLight, directedLights);
+		color = lighting*closestBall->get_color();
 	}
 	return color;
 }
@@ -73,7 +77,7 @@ int main() {
 	// The sum of the intensities of our lights should be 1 if we don't want overexposure.
 	Light ambientLight(0.2);
 	vector<DirectedLight> directedLights = {DirectedLight(0.6, true, Vec3f(2, 1, 0)),
-											DirectedLight(0.2, false, Vec3f(1, 4, 4))};
+											DirectedLight(0.2, false, Vec3f(-1, -4, -4))};
 
 	// Camera position in world coordinates. x and y are planar with the screen, z is into the screen.
 	const Vec3f camera(0, 0, 0);
