@@ -27,14 +27,17 @@ Vec3f canvas_to_port(float canvasX, float canvasY, int canvasW, int canvasH, int
 }
 
 /*
+ * Reflects R over N
+ */
+Vec3f reflect_ray(const Vec3f& R, const Vec3f& N) {
+	return 2*(R*N)*N - R;
+}
+
+/*
  * Calculates total lighting on a point
  */
-float compute_lighting(const float tmin, const Vec3f& camera, const Vec3f& dir, const size_t closestBallInd,
+float compute_lighting(const Vec3f& dir, const Vec3f& P, const Vec3f& N, const size_t closestBallInd,
 		const vector<Sphere>& balls, const Light& ambientLight, const vector<DirectedLight>& directedLights) {
-	Vec3f P = camera + tmin*dir;
-	Vec3f N = P - balls[closestBallInd].get_center();
-	N = 1/N.length() * N;
-
 	float i = ambientLight.get_intensity();
 	for (const DirectedLight& directedLight: directedLights) {
 		Vec3f L;
@@ -64,7 +67,7 @@ float compute_lighting(const float tmin, const Vec3f& camera, const Vec3f& dir, 
 			// Specular
 			float s = balls[closestBallInd].get_specular();
 			if (s > 0) {
-				Vec3f R = 2*(N*L)*N - L;
+				Vec3f R = reflect_ray(L, N);
 				Vec3f V = -1*dir;
 				float RdotV = R*V;
 				if (RdotV > 0) {
@@ -80,9 +83,9 @@ float compute_lighting(const float tmin, const Vec3f& camera, const Vec3f& dir, 
  * Returns the color a ray sees
  */
 Vec3f trace_ray(const Vec3f& camera, const Vec3f& dir, const vector<Sphere>& balls, const Light& ambientLight,
-				const vector<DirectedLight>& directedLights) {
+				const vector<DirectedLight>& directedLights, const int recurseLimit) {
 	float tmin = numeric_limits<float>::max();
-	Vec3f color = Vec3f(255, 255, 255);
+	Vec3f color = Vec3f(0, 0, 0);
 	int closestBallInd = -1;
 	for (size_t i = 0; i < balls.size(); ++i) {
 		float t = balls[i].ray_intersection(camera, dir);
@@ -91,23 +94,39 @@ Vec3f trace_ray(const Vec3f& camera, const Vec3f& dir, const vector<Sphere>& bal
 			closestBallInd = i;
 		}
 	}
-	if (closestBallInd > -1) {
-		float lighting = compute_lighting(tmin, camera, dir, closestBallInd, balls, ambientLight, directedLights);
-		color = lighting*balls[closestBallInd].get_color();
+
+	if (closestBallInd < 0) {
+		return color;
 	}
+
+	Vec3f P = camera + tmin*dir;
+	Vec3f N = P - balls[closestBallInd].get_center();
+	N = 1/N.length() * N;
+	float lighting = compute_lighting(dir, P, N, closestBallInd, balls, ambientLight, directedLights);
+	color = lighting*balls[closestBallInd].get_color();
+
+	float r = balls[closestBallInd].get_reflective();
+	if (recurseLimit > 0 && r > 0) {
+		Vec3f R = reflect_ray(-1*dir, N);
+		color = (1 - r)*color + r*trace_ray(P, R, balls, ambientLight, directedLights, recurseLimit-1);
+	}
+
 	return Vec3f(min(255.f, color[0]), min(255.f, color[1]), min(255.f, color[2]));
 }
 
 int main() {
-	vector<Sphere> balls = {Sphere(Vec3f(0, -1, 3), 1, Vec3f(255, 0, 0), 500),
-							Sphere(Vec3f(-2, 0, 4), 1, Vec3f(0, 255, 0), 10),
-							Sphere(Vec3f(2, 0, 4), 1, Vec3f(0, 0, 255), 500),
-							Sphere(Vec3f(0, -5001, 0), 5000, Vec3f(255, 255, 0), 1000)};
+	vector<Sphere> balls = {Sphere(Vec3f(0, -1, 3), 1, Vec3f(255, 0, 0), 500, 0.2),
+							Sphere(Vec3f(-2, 0, 4), 1, Vec3f(0, 255, 0), 10, 0.4),
+							Sphere(Vec3f(2, 0, 4), 1, Vec3f(0, 0, 255), 500, 0.3),
+							Sphere(Vec3f(0, -5001, 0), 5000, Vec3f(255, 255, 0), 1000, 0.5)};
 
 	// The sum of the intensities of our lights should be 1 if we don't want overexposure.
 	Light ambientLight(0.2);
 	vector<DirectedLight> directedLights = {DirectedLight(0.6, true, Vec3f(2, 1, 0)),
 											DirectedLight(0.2, false, Vec3f(-1, -4, -4))};
+
+	// The recursion limit for reflections
+	const int recurseLimit = 3;
 
 	// Camera position in world coordinates. x and y are planar with the screen, z is into the screen.
 	const Vec3f camera(0, 0, 0);
@@ -131,7 +150,7 @@ int main() {
 			float canvasX = i - canvasW/2.f;	// treat center of canvas as origin
 			float canvasY = canvasH/2.f - j;
 			Vec3f dir = canvas_to_port(canvasX, canvasY, canvasW, canvasH, portW, portH, portD);
-			Vec3f color = trace_ray(camera, dir, balls, ambientLight, directedLights);
+			Vec3f color = trace_ray(camera, dir, balls, ambientLight, directedLights, recurseLimit);
 			framebuffer[j*canvasW + i] = color;
 		}
 	}
