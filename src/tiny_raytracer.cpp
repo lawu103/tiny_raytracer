@@ -16,6 +16,9 @@
 
 using namespace std;
 
+#define EPSILON_F numeric_limits<float>::epsilon()
+#define MAX_F numeric_limits<float>::max()
+
 /*
  * Converts a canvas xy position to a viewport xyz position
  */
@@ -26,10 +29,10 @@ Vec3f canvas_to_port(float canvasX, float canvasY, int canvasW, int canvasH, int
 /*
  * Calculates total lighting on a point
  */
-float compute_lighting(const float tmin, const Vec3f& camera, const Vec3f& dir, const Sphere* closestBall,
-		const Light& ambientLight, const vector<DirectedLight>& directedLights) {
+float compute_lighting(const float tmin, const Vec3f& camera, const Vec3f& dir, const size_t closestBallInd,
+		const vector<Sphere>& balls, const Light& ambientLight, const vector<DirectedLight>& directedLights) {
 	Vec3f P = camera + tmin*dir;
-	Vec3f N = P - closestBall->get_center();
+	Vec3f N = P - balls[closestBallInd].get_center();
 	N = 1/N.length() * N;
 
 	float i = ambientLight.get_intensity();
@@ -41,20 +44,32 @@ float compute_lighting(const float tmin, const Vec3f& camera, const Vec3f& dir, 
 			L = -1*directedLight.get_v();
 		}
 
-		// Diffuse
-		float NdotL = N*L;
-		if (NdotL > 0) {
-			i += directedLight.get_intensity() * NdotL/(N.length()*L.length());
+		// Shadow
+		bool isShadowed = false;
+		for (const Sphere& ball: balls) {
+			float t = ball.ray_intersection(P, L);
+			if (t < MAX_F && t > 0) {
+				isShadowed = true;
+				break;
+			}
 		}
 
-		// Specular
-		float s = closestBall->get_specular();
-		if (s > 0) {
-			Vec3f R = 2*(N*L)*N - L;
-			Vec3f V = -1*dir;
-			float RdotV = R*V;
-			if (RdotV > 0) {
-				i += directedLight.get_intensity() * pow(RdotV/(R.length()*V.length()), s);
+		if (!isShadowed) {
+			// Diffuse
+			float NdotL = N*L;
+			if (NdotL > 0) {
+				i += directedLight.get_intensity() * NdotL/(N.length()*L.length());
+			}
+
+			// Specular
+			float s = balls[closestBallInd].get_specular();
+			if (s > 0) {
+				Vec3f R = 2*(N*L)*N - L;
+				Vec3f V = -1*dir;
+				float RdotV = R*V;
+				if (RdotV > 0) {
+					i += directedLight.get_intensity() * pow(RdotV/(R.length()*V.length()), s);
+				}
 			}
 		}
 	}
@@ -68,17 +83,17 @@ Vec3f trace_ray(const Vec3f& camera, const Vec3f& dir, const vector<Sphere>& bal
 				const vector<DirectedLight>& directedLights) {
 	float tmin = numeric_limits<float>::max();
 	Vec3f color = Vec3f(255, 255, 255);
-	const Sphere* closestBall = NULL;
-	for (const Sphere& ball: balls) {
-		float t = ball.ray_intersection(camera, dir);
+	int closestBallInd = -1;
+	for (size_t i = 0; i < balls.size(); ++i) {
+		float t = balls[i].ray_intersection(camera, dir);
 		if (t < tmin && t >= 0) {
 			tmin = t;
-			closestBall = &ball;
+			closestBallInd = i;
 		}
 	}
-	if (closestBall) {
-		float lighting = compute_lighting(tmin, camera, dir, closestBall, ambientLight, directedLights);
-		color = lighting*closestBall->get_color();
+	if (closestBallInd > -1) {
+		float lighting = compute_lighting(tmin, camera, dir, closestBallInd, balls, ambientLight, directedLights);
+		color = lighting*balls[closestBallInd].get_color();
 	}
 	return Vec3f(min(255.f, color[0]), min(255.f, color[1]), min(255.f, color[2]));
 }
