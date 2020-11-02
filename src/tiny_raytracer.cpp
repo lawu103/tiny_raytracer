@@ -44,7 +44,7 @@ float compute_lighting(const Vec3f& dir, const Vec3f& P, const Vec3f& N, const s
 		if (directedLight.is_point()) {
 			L = directedLight.get_v() - P;
 		} else {
-			L = -1*directedLight.get_v();
+			L = -directedLight.get_v();
 		}
 
 		// Shadow
@@ -68,7 +68,7 @@ float compute_lighting(const Vec3f& dir, const Vec3f& P, const Vec3f& N, const s
 			float s = balls[closestBallInd].get_specular();
 			if (s > 0) {
 				Vec3f R = reflect_ray(L, N);
-				Vec3f V = -1*dir;
+				Vec3f V = -dir;
 				float RdotV = R*V;
 				if (RdotV > 0) {
 					i += directedLight.get_intensity() * pow(RdotV/(R.length()*V.length()), s);
@@ -107,8 +107,8 @@ Vec3f trace_ray(const Vec3f& camera, const Vec3f& dir, const vector<Sphere>& bal
 
 	float r = balls[closestBallInd].get_reflective();
 	if (recurseLimit > 0 && r > 0) {
-		Vec3f R = reflect_ray(-1*dir, N);
-		color = (1 - r)*color + r*trace_ray(P, R, balls, ambientLight, directedLights, recurseLimit-1);
+		Vec3f R = reflect_ray(-dir, N);
+		color = (1 - r)*color + r*trace_ray(P, R, balls, ambientLight, directedLights, recurseLimit - 1);
 	}
 
 	return Vec3f(min(255.f, color[0]), min(255.f, color[1]), min(255.f, color[2]));

@@ -79,6 +79,13 @@ template<size_t dim, typename T> Vec<dim, T> operator-(Vec<dim, T> a, const Vec<
 	return a;
 }
 
+template<size_t dim, typename T> Vec<dim, T> operator-(Vec<dim, T> a) {
+	for (size_t i = 0; i < dim; ++i) {
+		a[i] *= -1;
+	}
+	return a;
+}
+
 template<size_t dim, typename T> T operator*(const Vec<dim, T>& a, const Vec<dim, T>& b) {
 	T dotProd = T();
 	for (size_t i = 0; i < dim; ++i) {
